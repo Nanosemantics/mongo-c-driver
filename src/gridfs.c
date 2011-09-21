@@ -104,6 +104,7 @@ int gridfs_init(mongo_connection * client, const char * dbname,
   bson_from_buffer(&b, &bb);
   options = 0;
   success = mongo_create_index(gfs->client, gfs->files_ns, &b, options, &out);
+  bson_destroy(&out);
   bson_destroy(&b);
   if (!success) {
     free((char*)gfs->dbname);
@@ -119,6 +120,7 @@ int gridfs_init(mongo_connection * client, const char * dbname,
   bson_from_buffer(&b, &bb);
   options = MONGO_INDEX_UNIQUE;
   success = mongo_create_index(gfs->client, gfs->chunks_ns, &b, options, &out);
+  bson_destroy(&out);
   bson_destroy(&b);
   if (!success) {
     free((char*)gfs->dbname);
@@ -703,8 +705,14 @@ mongo_cursor* gridfile_get_chunks(gridfile* gfile, int start, int size)
   bson_append_bson(&command_buf, "orderby", &orderby_bson);
   bson_from_buffer(&command_bson, &command_buf);
 
-  return mongo_find(gfile->gfs->client, gfile->gfs->chunks_ns,
+  mongo_cursor* mc = mongo_find(gfile->gfs->client, gfile->gfs->chunks_ns,
         &command_bson, NULL, size, 0, 0);
+  
+  bson_buffer_destroy( &query_buf );
+  bson_buffer_destroy( &orderby_buf );
+  bson_buffer_destroy( &command_buf );
+  
+  return mc;
 }
 
 /*--------------------------------------------------------------------*/
